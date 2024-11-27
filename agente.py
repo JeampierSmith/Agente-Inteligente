@@ -10,13 +10,12 @@ FPS = 5  # Velocidad de actualización
 # Colores
 WHITE = (255, 255, 255)
 BLACK = (0, 0, 0)
-GREEN = (0, 255, 0)
 BLUE = (0, 0, 255)
 GRAY = (200, 200, 200)
-DARK_GREEN = (0, 200, 0)
+LIGHT_BLUE = (173, 216, 230)
 
 class Environment:
-    def __init__(self, size, obstacles, goal):
+    def __init__(self, size, obstacles):
         self.size = size
         self.grid = [[' ' for _ in range(size)] for _ in range(size)]
         self.agent_position = [0, 0]
@@ -24,12 +23,8 @@ class Environment:
         # Colocar obstáculos
         for _ in range(obstacles):
             x, y = random.randint(0, size-1), random.randint(0, size-1)
-            if [x, y] != [0, 0] and [x, y] != goal:
+            if [x, y] != [0, 0]:  # Evitar colocar obstáculos en la posición inicial
                 self.grid[x][y] = 'X'
-
-        # Colocar el objetivo
-        self.grid[goal[0]][goal[1]] = 'G'
-        self.goal_position = goal
 
     def is_valid_move(self, position):
         x, y = position
@@ -40,27 +35,26 @@ class Environment:
     def move_agent(self, new_position):
         if self.is_valid_move(new_position):
             self.agent_position = new_position
+            self.grid[new_position[0]][new_position[1]] = 'O'  # Marcar como visitado
             return True
         return False
-
-    def is_goal_reached(self):
-        return self.agent_position == self.goal_position
 
 
 class Agent:
     def __init__(self, environment):
         self.env = environment
         self.visited = set()
-        self.path = []
+        self.stack = []  # Pila para retroceder
 
-    def move(self):
-        if self.env.is_goal_reached():  # Detenerse si ya se alcanzó el objetivo
-            return True
-
+    def explore(self):
         x, y = self.env.agent_position
         self.visited.add((x, y))
 
-        # Definir posibles movimientos: arriba, abajo, izquierda, derecha
+        # Agregar posición actual al stack
+        if not self.stack or self.stack[-1] != (x, y):
+            self.stack.append((x, y))
+
+        # Definir posibles movimientos
         moves = [
             (x-1, y),  # arriba
             (x+1, y),  # abajo
@@ -68,19 +62,22 @@ class Agent:
             (x, y+1)   # derecha
         ]
 
+        # Mezclar el orden de los movimientos
+        random.shuffle(moves)
+
         # Intentar moverse a una celda válida y no visitada
         for move in moves:
             if move not in self.visited and self.env.is_valid_move(move):
-                self.path.append(move)
-                if self.env.move_agent(move):
-                    return False  # El movimiento fue realizado, continuar
+                self.env.move_agent(move)
+                return False  # Continúa explorando
 
         # Si no hay movimientos válidos, retroceder
-        if self.path:
-            self.env.move_agent(self.path.pop())
+        if self.stack:
+            self.stack.pop()  # Elimina la posición actual
+            if self.stack:  # Si hay más posiciones en el stack, retrocede
+                self.env.move_agent(self.stack[-1])
 
-        return False  # El agente sigue moviéndose
-
+        return len(self.visited) == self.env.size ** 2  # Terminar si todo el entorno ha sido visitado
 
 def draw_environment(screen, environment):
     screen.fill(WHITE)
@@ -90,12 +87,8 @@ def draw_environment(screen, environment):
             rect = pygame.Rect(y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
             if environment.grid[x][y] == 'X':
                 pygame.draw.rect(screen, BLACK, rect)
-            elif environment.grid[x][y] == 'G':
-                pygame.draw.rect(screen, GREEN, rect)
-                # Dibujar un círculo para destacar el objetivo
-                center = (y * CELL_SIZE + CELL_SIZE // 2, x * CELL_SIZE + CELL_SIZE // 2)
-                radius = CELL_SIZE // 4
-                pygame.draw.circle(screen, DARK_GREEN, center, radius)
+            elif environment.grid[x][y] == 'O':
+                pygame.draw.rect(screen, LIGHT_BLUE, rect)
             pygame.draw.rect(screen, GRAY, rect, 1)
 
     # Dibujar al agente
@@ -111,7 +104,7 @@ pygame.display.set_caption("Agente Explorador")
 clock = pygame.time.Clock()
 
 # Crear entorno y agente
-env = Environment(GRID_SIZE, obstacles=10, goal=[6, 6])
+env = Environment(GRID_SIZE, obstacles=20)
 agent = Agent(env)
 
 # Bucle principal
@@ -121,14 +114,15 @@ while running:
         if event.type == pygame.QUIT:
             running = False
 
-    # Mover al agente solo si no ha alcanzado el objetivo
-    if not env.is_goal_reached():
-        if agent.move():  # El agente se detiene si llega al objetivo
-            print("¡El agente alcanzó el objetivo!")
-            running = False
-    else:
-        print("¡El agente alcanzó el objetivo!")
-        running = False  # Salir del bucle si alcanza el objetivo
+    # Explorar el entorno
+    if agent.explore():
+        print("¡El agente exploró todo el entorno!")
+        running = False
+
+    # Imprimir la matriz en consola
+    for row in env.grid:
+        print(' '.join(row))
+    print("\n")
 
     # Dibujar entorno
     draw_environment(screen, env)
