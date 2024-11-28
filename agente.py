@@ -39,7 +39,6 @@ class Environment:
             return True
         return False
 
-
 class Agent:
     def __init__(self, environment):
         self.env = environment
@@ -62,8 +61,6 @@ class Agent:
             (x, y+1)   # derecha
         ]
 
-        # Mezclar el orden de los movimientos
-        random.shuffle(moves)
 
         # Intentar moverse a una celda válida y no visitada
         for move in moves:
@@ -76,8 +73,11 @@ class Agent:
             self.stack.pop()  # Elimina la posición actual
             if self.stack:  # Si hay más posiciones en el stack, retrocede
                 self.env.move_agent(self.stack[-1])
+                return False
 
-        return len(self.visited) == self.env.size ** 2  # Terminar si todo el entorno ha sido visitado
+        # Si no hay movimientos válidos ni en el stack, está bloqueado
+        print("El agente está completamente bloqueado y no puede explorar más.")
+        return True
 
 def draw_environment(screen, environment):
     screen.fill(WHITE)
@@ -95,7 +95,6 @@ def draw_environment(screen, environment):
     agent_x, agent_y = environment.agent_position
     agent_rect = pygame.Rect(agent_y * CELL_SIZE, agent_x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
     pygame.draw.rect(screen, BLUE, agent_rect)
-
 
 # Configuración inicial
 pygame.init()
@@ -116,7 +115,7 @@ while running:
 
     # Explorar el entorno
     if agent.explore():
-        print("¡El agente exploró todo el entorno!")
+        print("Exploración completada o agente bloqueado.")
         running = False
 
     # Imprimir la matriz en consola
