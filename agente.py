@@ -5,7 +5,7 @@ import random
 GRID_SIZE = 7  # Tamaño del entorno
 CELL_SIZE = 80  # Tamaño de cada celda en píxeles
 SCREEN_SIZE = GRID_SIZE * CELL_SIZE  # Tamaño de la ventana
-FPS = 5  # Velocidad de actualización
+FPS = 2  # Velocidad de actualización
 
 # Colores
 WHITE = (255, 255, 255)
@@ -42,18 +42,19 @@ class Environment:
 class Agent:
     def __init__(self, environment):
         self.env = environment
-        self.visited = set()
-        self.stack = []  # Pila para retroceder
+        self.visited = set()  # Para rastrear las celdas visitadas
+        self.stack = []  # Pila para manejar los movimientos del DFS
 
     def explore(self):
+        # Obtener la posición actual del agente
         x, y = self.env.agent_position
-        self.visited.add((x, y))
+        self.visited.add((x, y))  # Marcar como visitado
 
-        # Agregar posición actual al stack
+        # Agregar posición actual al stack si no está ya en el tope
         if not self.stack or self.stack[-1] != (x, y):
             self.stack.append((x, y))
 
-        # Definir posibles movimientos
+        # Generar movimientos posibles: arriba, abajo, izquierda, derecha
         moves = [
             (x-1, y),  # arriba
             (x+1, y),  # abajo
@@ -61,23 +62,23 @@ class Agent:
             (x, y+1)   # derecha
         ]
 
-
-        # Intentar moverse a una celda válida y no visitada
+        # Explorar movimientos válidos
         for move in moves:
             if move not in self.visited and self.env.is_valid_move(move):
-                self.env.move_agent(move)
-                return False  # Continúa explorando
+                self.env.move_agent(move)  # Mover al agente
+                return False  # Continuar explorando
 
         # Si no hay movimientos válidos, retroceder
         if self.stack:
-            self.stack.pop()  # Elimina la posición actual
-            if self.stack:  # Si hay más posiciones en el stack, retrocede
+            self.stack.pop()  # Elimina la posición actual de la pila
+            if self.stack:  # Si quedan más posiciones en el stack, retrocede
                 self.env.move_agent(self.stack[-1])
                 return False
 
-        # Si no hay movimientos válidos ni en el stack, está bloqueado
-        print("El agente está completamente bloqueado y no puede explorar más.")
+        # Si el stack está vacío, la exploración termina
+        print("completado. No quedan movimientos.")
         return True
+
 
 def draw_environment(screen, environment):
     screen.fill(WHITE)
