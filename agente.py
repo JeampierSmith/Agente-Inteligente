@@ -2,9 +2,7 @@ import pygame
 import random
 
 # Configuración inicial
-GRID_SIZE = 7  # Tamaño del entorno
-CELL_SIZE = 80  # Tamaño de cada celda en píxeles
-SCREEN_SIZE = GRID_SIZE * CELL_SIZE  # Tamaño de la ventana
+WINDOW_SIZE = 600  # Tamaño fijo de la ventana
 FPS = 5  # Velocidad de actualización
 
 # Colores
@@ -22,9 +20,11 @@ class Environment:
 
         # Colocar obstáculos
         for _ in range(obstacles):
-            x, y = random.randint(0, size-1), random.randint(0, size-1)
-            if [x, y] != [0, 0]:  # Evitar colocar obstáculos en la posición inicial
-                self.grid[x][y] = 'X'
+            while True:
+                x, y = random.randint(0, size-1), random.randint(0, size-1)
+                if [x, y] != [0, 0] and self.grid[x][y] != 'X':
+                    self.grid[x][y] = 'X'
+                    break
 
     def is_valid_move(self, position):
         x, y = position
@@ -61,7 +61,6 @@ class Agent:
             (x, y+1)   # derecha
         ]
 
-
         # Intentar moverse a una celda válida y no visitada
         for move in moves:
             if move not in self.visited and self.env.is_valid_move(move):
@@ -79,12 +78,12 @@ class Agent:
         print("El agente está completamente bloqueado y no puede explorar más.")
         return True
 
-def draw_environment(screen, environment):
+def draw_environment(screen, environment, cell_size):
     screen.fill(WHITE)
 
     for x in range(environment.size):
         for y in range(environment.size):
-            rect = pygame.Rect(y * CELL_SIZE, x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+            rect = pygame.Rect(y * cell_size, x * cell_size, cell_size, cell_size)
             if environment.grid[x][y] == 'X':
                 pygame.draw.rect(screen, BLACK, rect)
             elif environment.grid[x][y] == 'O':
@@ -93,20 +92,96 @@ def draw_environment(screen, environment):
 
     # Dibujar al agente
     agent_x, agent_y = environment.agent_position
-    agent_rect = pygame.Rect(agent_y * CELL_SIZE, agent_x * CELL_SIZE, CELL_SIZE, CELL_SIZE)
+    agent_rect = pygame.Rect(agent_y * cell_size, agent_x * cell_size, cell_size, cell_size)
     pygame.draw.rect(screen, BLUE, agent_rect)
 
-# Configuración inicial
-pygame.init()
-screen = pygame.display.set_mode((SCREEN_SIZE, SCREEN_SIZE))
-pygame.display.set_caption("Agente Explorador")
-clock = pygame.time.Clock()
+def main_menu():
+    pygame.init()
+    screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+    pygame.display.set_caption("Configuración del Entorno")
+    font = pygame.font.Font(None, 36)
+    clock = pygame.time.Clock()
 
-# Crear entorno y agente
-env = Environment(GRID_SIZE, obstacles=20)
-agent = Agent(env)
+    size_input = ""  # Entrada inicial para el tamaño del entorno
+    obstacle_input = ""  # Entrada inicial para la cantidad de obstáculos
+    input_active = "size"  # Campo activo (size u obstacles)
+    error_message = ""
+
+    while True:
+        screen.fill(WHITE)
+
+        # Dibujar títulos y campos de entrada
+        title_text = font.render("Configuración del Entorno", True, BLACK)
+        size_label = font.render("Tamaño del entorno (n x n):", True, BLACK)
+        obstacle_label = font.render("Cantidad de obstáculos:", True, BLACK)
+        size_value = font.render(size_input, True, BLUE if input_active == "size" else BLACK)
+        obstacle_value = font.render(obstacle_input, True, BLUE if input_active == "obstacles" else BLACK)
+        instruction_text = font.render("Presiona ENTER para continuar", True, GRAY)
+        error_text = font.render(error_message, True, (255, 0, 0))
+
+        # Posicionar los textos
+        screen.blit(title_text, (WINDOW_SIZE // 4, 50))
+        screen.blit(size_label, (50, 150))
+        screen.blit(size_value, (400, 150))
+        screen.blit(obstacle_label, (50, 250))
+        screen.blit(obstacle_value, (400, 250))
+        screen.blit(instruction_text, (50, 350))
+        if error_message:
+            screen.blit(error_text, (50, 400))
+
+        # Manejar eventos
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                pygame.quit()
+                exit()
+            elif event.type == pygame.MOUSEBUTTONDOWN:
+                # Cambiar entre los campos activos al hacer clic
+                if 150 <= event.pos[1] <= 200:  # Primer campo
+                    input_active = "size"
+                elif 250 <= event.pos[1] <= 300:  # Segundo campo
+                    input_active = "obstacles"
+            elif event.type == pygame.KEYDOWN:
+                if event.key == pygame.K_RETURN:  # Confirmar configuración
+                    if size_input.isdigit() and obstacle_input.isdigit():
+                        size = int(size_input)
+                        obstacles = int(obstacle_input)
+                        if obstacles >= size * size:
+                            error_message = "Los obstáculos deben ser menores al tamaño total del entorno."
+                        else:
+                            return size, obstacles
+                    else:
+                        error_message = "Por favor, ingresa valores numéricos válidos."
+                elif event.key == pygame.K_BACKSPACE:
+                    if input_active == "size" and len(size_input) > 0:
+                        size_input = size_input[:-1]
+                    elif input_active == "obstacles" and len(obstacle_input) > 0:
+                        obstacle_input = obstacle_input[:-1]
+                elif event.unicode.isdigit():  # Solo permitir dígitos
+                    if input_active == "size" and len(size_input) < 2:
+                        size_input += event.unicode
+                    elif input_active == "obstacles" and len(obstacle_input) < 3:
+                        obstacle_input += event.unicode
+
+        pygame.display.flip()
+        clock.tick(FPS)
 
 # Bucle principal
+pygame.init()
+clock = pygame.time.Clock()
+
+# Pantalla de configuración
+GRID_SIZE, obstacles = main_menu()
+
+# Ajustar el tamaño de celda dinámicamente
+CELL_SIZE = WINDOW_SIZE // GRID_SIZE
+
+# Crear entorno y agente
+env = Environment(GRID_SIZE, obstacles)
+agent = Agent(env)
+
+screen = pygame.display.set_mode((WINDOW_SIZE, WINDOW_SIZE))
+pygame.display.set_caption("Agente Explorador")
+
 running = True
 while running:
     for event in pygame.event.get():
@@ -124,7 +199,7 @@ while running:
     print("\n")
 
     # Dibujar entorno
-    draw_environment(screen, env)
+    draw_environment(screen, env, CELL_SIZE)
     pygame.display.flip()
     clock.tick(FPS)
 
