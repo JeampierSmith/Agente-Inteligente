@@ -2,15 +2,8 @@ import pygame
 import random
 
 # Configuración inicial
-<<<<<<< HEAD
 WINDOW_SIZE = 600  # Tamaño fijo de la ventana
 FPS = 5  # Velocidad de actualización
-=======
-GRID_SIZE = 7  # Tamaño del entorno
-CELL_SIZE = 80  # Tamaño de cada celda en píxeles
-SCREEN_SIZE = GRID_SIZE * CELL_SIZE  # Tamaño de la ventana
-FPS = 2  # Velocidad de actualización
->>>>>>> 081c2cc7f3dcc623a729129f131b87f7a3f96be2
 
 # Colores
 WHITE = (255, 255, 255)
@@ -49,19 +42,18 @@ class Environment:
 class Agent:
     def __init__(self, environment):
         self.env = environment
-        self.visited = set()  # Para rastrear las celdas visitadas
-        self.stack = []  # Pila para manejar los movimientos del DFS
+        self.visited = set()
+        self.stack = []  # Pila para retroceder
 
     def explore(self):
-        # Obtener la posición actual del agente
         x, y = self.env.agent_position
-        self.visited.add((x, y))  # Marcar como visitado
+        self.visited.add((x, y))
 
-        # Agregar posición actual al stack si no está ya en el tope
+        # Agregar posición actual al stack
         if not self.stack or self.stack[-1] != (x, y):
             self.stack.append((x, y))
 
-        # Generar movimientos posibles: arriba, abajo, izquierda, derecha
+        # Definir posibles movimientos
         moves = [
             (x-1, y),  # arriba
             (x+1, y),  # abajo
@@ -69,33 +61,24 @@ class Agent:
             (x, y+1)   # derecha
         ]
 
-<<<<<<< HEAD
         # Intentar moverse a una celda válida y no visitada
-=======
-        # Explorar movimientos válidos
->>>>>>> 081c2cc7f3dcc623a729129f131b87f7a3f96be2
         for move in moves:
             if move not in self.visited and self.env.is_valid_move(move):
-                self.env.move_agent(move)  # Mover al agente
-                return False  # Continuar explorando
+                self.env.move_agent(move)
+                return False  # Continúa explorando
 
         # Si no hay movimientos válidos, retroceder
         if self.stack:
-            self.stack.pop()  # Elimina la posición actual de la pila
-            if self.stack:  # Si quedan más posiciones en el stack, retrocede
+            self.stack.pop()  # Elimina la posición actual
+            if self.stack:  # Si hay más posiciones en el stack, retrocede
                 self.env.move_agent(self.stack[-1])
                 return False
 
-        # Si el stack está vacío, la exploración termina
-        print("completado. No quedan movimientos.")
+        # Si no hay movimientos válidos ni en el stack, está bloqueado
+        print("El agente está completamente bloqueado y no puede explorar más.")
         return True
 
-<<<<<<< HEAD
 def draw_environment(screen, environment, cell_size):
-=======
-
-def draw_environment(screen, environment):
->>>>>>> 081c2cc7f3dcc623a729129f131b87f7a3f96be2
     screen.fill(WHITE)
 
     for x in range(environment.size):
