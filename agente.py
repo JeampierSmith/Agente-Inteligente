@@ -1,6 +1,6 @@
 import pygame
 import random
-
+#dasdasdasdasd
 # Configuración inicial
 WINDOW_SIZE = 600  # Tamaño fijo de la ventana
 FPS = 5  # Velocidad de actualización
